@@ -1177,6 +1177,33 @@ def parse_options(args):
                          "when updating an existing review-request\n")
         sys.exit(1)
 
+    if not options.diff_filename:
+      print "Provide your Git formatted patches using --diff-filename=<patch>"
+      sys.exit(1)
+
+    def uploadOriginalPatch(patch_content):
+        # Post original file to paste.cloudstack.org (patch stays only for
+        # 1 month)
+        import httplib, urllib
+        params = urllib.urlencode({'content': patch_content, 'lexer': 'python',
+         'title': '', 'author': 'RBTOOL', 'expire_options': '2592000'})
+        headers = {"Content-type": "application/x-www-form-urlencoded",
+               "Accept": "text/plain", "Cookie":
+               'sessionid=64b9b91cb3febac75b4d87ce6f7edd20'}
+        conn = httplib.HTTPConnection("paste.cloudstack.org")
+        conn.request("POST", "", params, headers)
+        response = conn.getresponse()
+        patch_url = response.getheader('location')
+        conn.close()
+        return patch_url
+
+    fp = open(os.path.join(os.path.abspath(os.getcwd()), options.diff_filename), 'r')
+    diff = fp.read()
+    fp.close()
+    if options.description:
+      options.description += "\nDownload original patch: %sraw/" % uploadOriginalPatch(diff)
+    else:
+      options.description = "\nDownload original patch: %sraw/" % uploadOriginalPatch(diff)
     return args
 
 
