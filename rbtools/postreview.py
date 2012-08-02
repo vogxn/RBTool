@@ -1188,22 +1188,22 @@ def parse_options(args):
         params = urllib.urlencode({'content': patch_content, 'lexer': 'python',
          'title': '', 'author': 'RBTOOL', 'expire_options': '2592000'})
         headers = {"Content-type": "application/x-www-form-urlencoded",
-               "Accept": "text/plain", "Cookie":
-               'sessionid=64b9b91cb3febac75b4d87ce6f7edd20'}
-        conn = httplib.HTTPConnection("paste.cloudstack.org")
-        conn.request("POST", "", params, headers)
+               "Accept": "text/plain"}#,
+               #"Cookie": 'sessionid=64b9b91cb3febac75b4d87ce6f7edd20'}
+        conn = httplib.HTTPConnection("patchbin.baagi.org")
+        conn.request("POST", "/upload", params, headers)
         response = conn.getresponse()
-        patch_url = response.getheader('location')
+        patch_url = response.read() #response.getheader('location')
         conn.close()
-        return patch_url
+        return patch_url #+ 'raw/'
 
     fp = open(os.path.join(os.path.abspath(os.getcwd()), options.diff_filename), 'r')
     diff = fp.read()
     fp.close()
     if options.description:
-      options.description += "\nDownload original patch: %sraw/" % uploadOriginalPatch(diff)
+      options.description += "\nDownload original patch: %s" % uploadOriginalPatch(diff)
     else:
-      options.description = "\nDownload original patch: %sraw/" % uploadOriginalPatch(diff)
+      options.description = "\nDownload original patch: %s" % uploadOriginalPatch(diff)
     return args
 
 
