@@ -88,6 +88,14 @@ In above command or the bash scripts, remove args if you don't need that;
 I modified the tool to automatically take description and summary from the git
 formatted patch's subject and commit message.
 
+To get list of open/pending reviews on the RB, do this:
+
+    $ rbtool-cs -l
+
+The output will have this format;
+
+id | submitter | branch (version) | reviewer | update | last review/comment by non-submitter
+
 ## Contact
 
 I may ignore if your email don't interest me, feel free to fork this repository

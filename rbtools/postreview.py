@@ -1373,7 +1373,7 @@ def main():
     server.login()
 
     if options.list_reviews:
-      server.list_review_requests()
+      server.list_review_requests(options.target_groups)
       sys.exit()
 
     review_url = tempt_fate(server, tool, changenum, diff_content=diff,
