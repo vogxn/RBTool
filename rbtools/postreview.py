@@ -2,8 +2,10 @@
 import base64
 import cookielib
 import getpass
+import logging
 import mimetools
 import os
+import platform
 import re
 import sys
 import urllib2
@@ -726,7 +728,7 @@ class ReviewBoardServer(object):
         }
 
         try:
-            r = HTTPRequest(url, body, headers, method='PUT')
+            r = HTTPRequest(str(url), body, headers, method='PUT')
             data = urllib2.urlopen(r).read()
             try:
                 self.cookie_jar.save(self.cookie_file)
@@ -850,6 +852,12 @@ def tempt_fate(server, tool, changenum, diff_content=None,
     try:
         if options.rid:
             review_request = server.get_review_request(options.rid)
+            status = review_request['status']
+
+            if status == 'submitted':
+                die("Review request %s is marked as %s. In order to "
+                    "update it, please reopen the request using the web "
+                    "interface and try again." % (options.rid, status))
         else:
             review_request = server.new_review_request(changenum, submit_as)
 
@@ -899,9 +907,9 @@ def tempt_fate(server, tool, changenum, diff_content=None,
             # number of retries.
             if retries >= 0:
                 server.login(force=True)
-                tempt_fate(server, tool, changenum, diff_content,
-                           parent_diff_content, submit_as, retries=retries)
-                return
+                return tempt_fate(server, tool, changenum, diff_content,
+                                  parent_diff_content, submit_as,
+                                  retries=retries)
 
         if options.rid:
             die("Error getting review request %s: %s" % (options.rid, e))
@@ -1133,6 +1141,9 @@ def parse_options(args):
 
     (globals()["options"], args) = parser.parse_args(args)
 
+    if options.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+
     if options.description and options.description_file:
         sys.stderr.write("The --description and --description-file options "
                          "are mutually exclusive.\n")
@@ -1182,8 +1193,7 @@ def parse_options(args):
       sys.exit(1)
 
     def uploadOriginalPatch(patch_content):
-        # Post original file to paste.cloudstack.org (patch stays only for
-        # 1 month)
+        print "uploading to bhaisaab's patchbin.baagi.org"
         import httplib, urllib
         params = urllib.urlencode({'content': patch_content, 'lexer': 'python',
          'title': '', 'author': 'RBTOOL', 'expire_options': '2592000'})
@@ -1204,6 +1214,7 @@ def parse_options(args):
       options.description += "\nDownload original patch: %s" % uploadOriginalPatch(diff)
     else:
       options.description = "\nDownload original patch: %s" % uploadOriginalPatch(diff)
+
     return args
 
 
@@ -1217,6 +1228,10 @@ def main():
     else:
         homepath = ''
 
+    # If we end up creating a cookie file, make sure it's only readable by the
+    # user.
+    os.umask(0077)
+
     # Load the config and cookie files
     cookie_file = os.path.join(homepath, ".post-review-cookies.txt")
     user_config, globals()['configs'] = load_config_files(homepath)
@@ -1224,9 +1239,15 @@ def main():
     args = parse_options(sys.argv[1:])
 
     debug('RBTools %s' % get_version_string())
+    debug('Python %s' % sys.version)
+    debug('Running on %s' % (platform.platform()))
     debug('Home = %s' % homepath)
+    debug('Current Directory = %s' % os.getcwd())
 
+    debug('Checking the repository type. Errors shown below are mostly harmless.')
     repository_info, tool = scan_usable_client(options)
+    debug('Finished checking the repository type.')
+
     tool.user_config = user_config
     tool.configs = configs
 
