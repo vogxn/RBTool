@@ -451,7 +451,7 @@ class ReviewBoardServer(object):
                 'changenum': review_request['changenum'],
             })
 
-    def list_review_requests(self, group="cloudstack"):
+    def list_review_requests(self, group="cloudstack", skipComments=False):
       url = "/api/review-requests/?max-results=100&to-groups=%s&status=pending" % group
 
       rsp = self.api_get(url)
@@ -476,14 +476,17 @@ class ReviewBoardServer(object):
         dnow = datetime.now()
         ddmy = datetime(int(dmy[0]), int(dmy[1]), int(dmy[2]))
         update_status = ""
-        if (dnow - ddmy) < timedelta(days = 5):
+        if (dnow - ddmy) < timedelta(days = 4): # anything new past 3 days
           update_status = "Y"
         row_line = "%-4d | %-15s | %-15s | %-32s | %-1s |" % (obj['id'], obj['links']['submitter']['title'][:15], obj["branch"][:15], reviewers_line[:32], update_status)
         print row_line,
-        last_comment = self.api_get(obj['links']['reviews']['href'])['reviews']
-        if len(last_comment) > 0:
-          comment = last_comment[-1]['links']['user']['title'] + "-> " + last_comment[-1]['body_top'].split('\n')[0][:80]
-          print comment[:75],
+        if not skipComments:
+          last_comment = self.api_get(obj['links']['reviews']['href'])['reviews']
+          if len(last_comment) > 0:
+            comment_body = [s for s in last_comment[-1]['body_top'].split('\n') if s]
+            if len(comment_body) > 0: comment_body = comment_body[0][:80]
+            comment = last_comment[-1]['links']['user']['title'] + "-> " + str(comment_body)
+            print comment[:75],
         print ""
 
     def set_review_request_field(self, review_request, field, value):
@@ -1177,7 +1180,11 @@ def parse_options(args):
     parser.add_option("-l", "--list_reviews",
                       action="store_true", dest="list_reviews",
                       default=get_config_value(configs, 'LIST_REVIEWS', False),
-                      help="list watched reviews that are still open")
+                      help="list pending reviews for a group (default cloudstack)")
+    parser.add_option("--skip_comments",
+                      action="store_true", dest="skip_comments",
+                      default=get_config_value(configs, 'SKIP_COMMENTS', False),
+                      help="skip comments fetching while listing pending reviews")
 
     (globals()["options"], args) = parser.parse_args(args)
 
@@ -1375,7 +1382,7 @@ def main():
     server.login()
 
     if options.list_reviews:
-      server.list_review_requests(options.target_groups)
+      server.list_review_requests(options.target_groups, options.skip_comments)
       sys.exit()
 
     review_url = tempt_fate(server, tool, changenum, diff_content=diff,
