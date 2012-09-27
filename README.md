@@ -1,13 +1,14 @@
-About rbtools
-=============
+# About rbtool
 
-rbtools is a collection of console utility scripts for use with Review Board.
+This is a fork of the reviewboard tool from Apache/reviewboard.org
+I enhanced this tool as per my needs to automate and productivize my
+day to day encounters with RB on apache.org. Do these things to use this
+tool:
 
-This consists of the following officially supported tools:
+Append this to your ~/.gitconfig, this is how the tools finds the RB.
 
-    * post-review - Create and update review requests based on changes in
-                    a local tree.
+    [reviewboard]
+      url = https://reviews.apache.org
 
 
-There are also some user-contributed scripts and application plugins in the
-contrib directory. See the associated README files for more information.
+
