@@ -459,7 +459,7 @@ class ReviewBoardServer(object):
 
       print "Found %d pending review requests for %s" % (len(review_requests), group)
 
-      top_line = "%-5s | %-15s | %-15s | %-45s | %-7s | %s" % (" #ID", "Submitter", "Branch", "Reviewer", "Updated", "Last Review by non-submitter")
+      top_line = "%-4s | %-15s | %-15s | %-32s |%-3s| %s" % (" #ID", "Submitter", "Branch", "Reviewer", "Upd", "Last Review by non-submitter")
       print top_line
       print "-" * len(top_line)
       # sort by review id
@@ -471,17 +471,19 @@ class ReviewBoardServer(object):
         reviewers_line = ""
         for people in obj["target_people"]:
           reviewers_line += "%s, " % people["title"]
+        reviewers_line = ",".join(reviewers_line.split(', ')[:4])
         dmy = obj['last_updated'][:10].split('-')
         dnow = datetime.now()
         ddmy = datetime(int(dmy[0]), int(dmy[1]), int(dmy[2]))
         update_status = ""
         if (dnow - ddmy) < timedelta(days = 5):
-          update_status = "  Yes"
-        row_line = "%-5d | %-15s | %-15s | %-45s | %-7s |" % (obj['id'], obj['links']['submitter']['title'], obj["branch"], reviewers_line[:45], update_status)
+          update_status = "Y"
+        row_line = "%-4d | %-15s | %-15s | %-32s | %-1s |" % (obj['id'], obj['links']['submitter']['title'][:15], obj["branch"][:15], reviewers_line[:32], update_status)
         print row_line,
         last_comment = self.api_get(obj['links']['reviews']['href'])['reviews']
         if len(last_comment) > 0:
-          print last_comment[-1]['links']['user']['title'] + "-> " + last_comment[-1]['body_top'].split('\n')[0][:80],
+          comment = last_comment[-1]['links']['user']['title'] + "-> " + last_comment[-1]['body_top'].split('\n')[0][:80]
+          print comment[:75],
         print ""
 
     def set_review_request_field(self, review_request, field, value):
