@@ -9,6 +9,7 @@ import platform
 import re
 import sys
 import urllib2
+from datetime import datetime, timedelta
 from optparse import OptionParser
 from pkg_resources import parse_version
 from urlparse import urljoin, urlparse
@@ -449,6 +450,39 @@ class ReviewBoardServer(object):
             self.api_put(review_request['links']['self']['href'], {
                 'changenum': review_request['changenum'],
             })
+
+    def list_review_requests(self, group="cloudstack"):
+      url = "/api/review-requests/?max-results=100&to-groups=%s&status=pending" % group
+
+      rsp = self.api_get(url)
+      review_requests = rsp['review_requests']
+
+      print "Found %d pending review requests for %s" % (len(review_requests), group)
+
+      top_line = "%-5s | %-15s | %-15s | %-45s | %-6s | %s" % (" #ID", "Submitter", "Branch", "Reviewer", "Update", "Last Review by non-submitter")
+      print top_line
+      print "-" * len(top_line)
+      # sort by review id
+      review_requests = sorted(review_requests, key=lambda k: k['id'])
+
+      for obj in review_requests:
+        if obj['public'] != True:
+          continue
+        reviewers_line = ""
+        for people in obj["target_people"]:
+          reviewers_line += "%s, " % people["title"]
+        dmy = obj['last_updated'][:10].split('-')
+        dnow = datetime.now()
+        ddmy = datetime(int(dmy[0]), int(dmy[1]), int(dmy[2]))
+        update_status = ""
+        if (dnow - ddmy) < timedelta(days = 5):
+          update_status = "Yes"
+        row_line = "%-5d | %-15s | %-15s | %-45s | %-6s |" % (obj['id'], obj['links']['submitter']['title'], obj["branch"], reviewers_line[:45], update_status)
+        print row_line,
+        last_comment = self.api_get(obj['links']['reviews']['href'])['reviews']
+        if len(last_comment) > 0:
+          print last_comment[-1]['links']['user']['title'] + "-> " + last_comment[-1]['body_top'].split('\n')[0][:80],
+        print ""
 
     def set_review_request_field(self, review_request, field, value):
         """
@@ -1138,11 +1172,12 @@ def parse_options(args):
                       default=get_config_value(configs, 'HTTP_PASSWORD'),
                       metavar='PASSWORD',
                       help='password for HTTP Basic authentication')
+    parser.add_option("-l", "--list_reviews",
+                      action="store_true", dest="list_reviews",
+                      default=get_config_value(configs, 'LIST_REVIEWS', False),
+                      help="list watched reviews that are still open")
 
     (globals()["options"], args) = parser.parse_args(args)
-
-    if options.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
 
     if options.description and options.description_file:
         sys.stderr.write("The --description and --description-file options "
@@ -1188,9 +1223,15 @@ def parse_options(args):
                          "when updating an existing review-request\n")
         sys.exit(1)
 
+    # bhaisaab's stuff starts here
+    if options.list_reviews:
+      options.debug = False
+
+    if options.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+
     if not options.diff_filename:
-      print "Provide your Git formatted patches using --diff-filename=<patch>"
-      sys.exit(1)
+      return args
 
     def uploadOriginalPatch(patch_content):
         print "uploading to bhaisaab's patchbin.baagi.org"
@@ -1210,10 +1251,23 @@ def parse_options(args):
     fp = open(os.path.join(os.path.abspath(os.getcwd()), options.diff_filename), 'r')
     diff = fp.read()
     fp.close()
-    if options.description:
-      options.description += "\nDownload original patch: %s" % uploadOriginalPatch(diff)
+    git_subline = "Subject: [PATCH] "
+    git_description = diff[diff.find(git_subline)+len(git_subline):diff.find("---")]
+    git_summary = git_description[:git_description.find('\n')]
+
+    if options.summary:
+      options.summary += git_summary
     else:
-      options.description = "\nDownload original patch: %s" % uploadOriginalPatch(diff)
+      options.summary = git_summary
+
+    if options.description:
+      options.description += "%s\nDownload the original patch and git am <patch-file>:\n%s" % (git_description, uploadOriginalPatch(diff))
+    else:
+      options.description = "%s\nDownload the original patch and git am <patch-file>:\n%s" % (git_description, uploadOriginalPatch(diff))
+
+    # Add some swag :D
+    options.description += "\n\n---\nPosted with bhaisaab's rbtool fork: https://github.com/bhaisaab/RBTool"
+    # bhaisaab's stuff ends here
 
     return args
 
@@ -1317,6 +1371,10 @@ def main():
 
     # Let's begin.
     server.login()
+
+    if options.list_reviews:
+      server.list_review_requests()
+      sys.exit()
 
     review_url = tempt_fate(server, tool, changenum, diff_content=diff,
                             parent_diff_content=parent_diff,
