@@ -459,7 +459,7 @@ class ReviewBoardServer(object):
 
       print "Found %d pending review requests for %s" % (len(review_requests), group)
 
-      top_line = "%-5s | %-15s | %-15s | %-45s | %-6s | %s" % (" #ID", "Submitter", "Branch", "Reviewer", "Update", "Last Review by non-submitter")
+      top_line = "%-5s | %-15s | %-15s | %-45s | %-7s | %s" % (" #ID", "Submitter", "Branch", "Reviewer", "Updated", "Last Review by non-submitter")
       print top_line
       print "-" * len(top_line)
       # sort by review id
@@ -476,8 +476,8 @@ class ReviewBoardServer(object):
         ddmy = datetime(int(dmy[0]), int(dmy[1]), int(dmy[2]))
         update_status = ""
         if (dnow - ddmy) < timedelta(days = 5):
-          update_status = "Yes"
-        row_line = "%-5d | %-15s | %-15s | %-45s | %-6s |" % (obj['id'], obj['links']['submitter']['title'], obj["branch"], reviewers_line[:45], update_status)
+          update_status = "  Yes"
+        row_line = "%-5d | %-15s | %-15s | %-45s | %-7s |" % (obj['id'], obj['links']['submitter']['title'], obj["branch"], reviewers_line[:45], update_status)
         print row_line,
         last_comment = self.api_get(obj['links']['reviews']['href'])['reviews']
         if len(last_comment) > 0:
