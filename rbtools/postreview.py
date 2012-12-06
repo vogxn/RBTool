@@ -1358,9 +1358,6 @@ def main():
     else:
         diff, parent_diff = tool.diff(args)
 
-    if len(diff) == 0:
-        die("There don't seem to be any diffs!")
-
     if (isinstance(tool, PerforceClient) or
         isinstance(tool, PlasticClient)) and changenum is not None:
         changenum = tool.sanitize_changenum(changenum)
