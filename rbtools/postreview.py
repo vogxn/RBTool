@@ -486,7 +486,7 @@ class ReviewBoardServer(object):
             comment_body = [s for s in last_comment[-1]['body_top'].split('\n') if s]
             if len(comment_body) > 0: comment_body = comment_body[0][:80]
             comment = last_comment[-1]['links']['user']['title'] + "-> " + str(comment_body)
-            print comment[:75],
+            print comment[:60],
         print ""
 
     def set_review_request_field(self, review_request, field, value):
