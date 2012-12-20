@@ -451,6 +451,13 @@ class ReviewBoardServer(object):
                 'changenum': review_request['changenum'],
             })
 
+    # Close review with rid as submitted
+    def close_review_request(self, rid, group="cloudstack"):
+      url = "/api/review-requests/%s/" % rid
+      rsp = self.api_put(url, {"status": "submitted"})
+      print "Sending close request for review #%s on %s" % (rid, url)
+      print "Got response:", rsp
+
     def list_review_requests(self, group="cloudstack", skipComments=False):
       url = "/api/review-requests/?max-results=100&to-groups=%s&status=pending" % group
 
@@ -1177,6 +1184,11 @@ def parse_options(args):
                       default=get_config_value(configs, 'HTTP_PASSWORD'),
                       metavar='PASSWORD',
                       help='password for HTTP Basic authentication')
+    parser.add_option("-c", "--close_review",
+                      action="store_true", dest="close_review",
+                      default=True,
+                      help="close status for provided review request id, rid"
+                           "states: discarded, pending, submitted")
     parser.add_option("-l", "--list_reviews",
                       action="store_true", dest="list_reviews",
                       default=get_config_value(configs, 'LIST_REVIEWS', False),
@@ -1380,6 +1392,10 @@ def main():
 
     if options.list_reviews:
       server.list_review_requests(options.target_groups, options.skip_comments)
+      sys.exit()
+
+    if options.close_review and options.rid is not None:
+      server.close_review_request(options.rid)
       sys.exit()
 
     review_url = tempt_fate(server, tool, changenum, diff_content=diff,
