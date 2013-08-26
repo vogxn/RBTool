@@ -27,12 +27,18 @@ username and password everytime:
 
     $ echo #!/bin/bash >> rbtool-cs
     $ echo export PYTHONPATH=~/bin/RBTools/:$PYTHONPATH >> rbtool-cs
-    $ echo python ~/bin/RBTools/rbtools/postreview.py --username=<put your username here> --password='put here password' --target-groups=cloudstack $* -d -o >> rbtool-cs
+    $ echo python ~/bin/RBTool/rbtools/postreview.py --username=<put your username here> --password='put here password' --target-groups=cloudstack $* -d -o >> rbtool-cs
 
 Update your PATH:
 
     $ echo export PATH=~/bin:$PATH >> ~/.zshrc # or ~/.aliasrc or ~/.bashrc or ~/.profile
     $ source ~/.zshrc
+
+run
+
+    $ python setup.py
+
+if needed.
 
 If everything goes well, run the following and learn the different options one
 can use with reviewboard tool:
